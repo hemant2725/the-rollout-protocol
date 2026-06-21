@@ -493,24 +493,6 @@ docker-compose up --build -d
 
 ## Common Mistakes
 
-### Wrong endpoint
-
-This will fail:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/score
-```
-
-Reason:
-
-- `/score` is not implemented.
-
-Use this instead:
-
-```powershell
-Invoke-RestMethod http://localhost:8080/route
-```
-
 ### Docker is not running
 
 If you see a connection error, start Docker Desktop first.
