@@ -8,7 +8,7 @@ ROLLOUT_URL := http://localhost:8084
 DASHBOARD_URL := http://localhost:8090
 
 help:
-	@echo "Progressive Delivery Lab - Available Commands"
+	@echo "The Rollout Protocol - Available Commands"
 	@echo "============================================"
 	@echo "  build          Compile all Java services"
 	@echo "  up             Start all Docker containers"
