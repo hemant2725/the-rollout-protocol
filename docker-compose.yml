@@ -1,0 +1,119 @@
+services:
+  flag-service:
+    build:
+      context: ./flag-service
+      dockerfile: Dockerfile
+    container_name: flag-service
+    ports:
+      - "8081:8081"
+    networks:
+      - lab-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  app-stable:
+    build:
+      context: ./app-stable
+      dockerfile: Dockerfile
+    container_name: app-stable
+    ports:
+      - "8082:8082"
+    networks:
+      - lab-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8082/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  app-canary:
+    build:
+      context: ./app-canary
+      dockerfile: Dockerfile
+    container_name: app-canary
+    ports:
+      - "8083:8083"
+    environment:
+      - SIMULATE_ERRORS=${SIMULATE_ERRORS:-false}
+    networks:
+      - lab-network
+    depends_on:
+      flag-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8083/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  router:
+    build:
+      context: ./router
+      dockerfile: Dockerfile
+    container_name: router
+    ports:
+      - "8080:8080"
+    networks:
+      - lab-network
+    depends_on:
+      app-stable:
+        condition: service_healthy
+      app-canary:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  rollout-controller:
+    build:
+      context: ./rollout-controller
+      dockerfile: Dockerfile
+    container_name: rollout-controller
+    ports:
+      - "8084:8084"
+    networks:
+      - lab-network
+    depends_on:
+      router:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8084/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: dashboard
+    ports:
+      - "8090:8090"
+    networks:
+      - lab-network
+    depends_on:
+      - flag-service
+      - app-stable
+      - app-canary
+      - router
+      - rollout-controller
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8090/"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+networks:
+  lab-network:
+    driver: bridge

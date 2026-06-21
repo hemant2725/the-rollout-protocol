@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Rollout Protocol - Java Spring Boot Canary Rollout System Demo</title>
+    <style>
+        :root {
+            --bg-0: #05070c;
+            --bg-1: #0c1220;
+            --panel: rgba(14, 21, 35, 0.82);
+            --panel-strong: rgba(18, 28, 45, 0.94);
+            --border: rgba(255, 255, 255, 0.09);
+            --text: #e8eefc;
+            --muted: #9aa8c7;
+            --muted-2: #7484a8;
+            --blue: #56a3ff;
+            --cyan: #61e7d5;
+            --green: #87d957;
+            --amber: #ffb86b;
+            --red: #ff6b7d;
+            --violet: #8f86ff;
+            --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at top left, rgba(86, 163, 255, 0.16), transparent 34%),
+                radial-gradient(circle at top right, rgba(143, 134, 255, 0.18), transparent 28%),
+                radial-gradient(circle at bottom center, rgba(97, 231, 213, 0.08), transparent 36%),
+                linear-gradient(180deg, var(--bg-1), var(--bg-0) 70%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+            mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), transparent 85%);
+        }
+
+        .shell {
+            width: min(1280px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 44px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+            gap: 18px;
+            align-items: stretch;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+        }
+
+        .hero-main {
+            padding: 28px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-main::after {
+            content: "";
+            position: absolute;
+            inset: auto -20px -70px auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(97, 231, 213, 0.18), transparent 68%);
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: rgba(86, 163, 255, 0.14);
+            border: 1px solid rgba(86, 163, 255, 0.25);
+            color: #cfe3ff;
+            font-size: 0.82rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            margin: 18px 0 10px;
+            font-size: clamp(2rem, 5vw, 4rem);
+            line-height: 1.02;
+            letter-spacing: -0.04em;
+        }
+
+        .hero-copy {
+            margin: 0;
+            max-width: 66ch;
+            color: var(--muted);
+            font-size: 1.02rem;
+            line-height: 1.65;
+        }
+
+        .hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 22px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            text-decoration: none;
+            font-size: 0.92rem;
+        }
+
+        .pill strong {
+            font-weight: 700;
+        }
+
+        .hero-side {
+            padding: 22px;
+            display: grid;
+            gap: 14px;
+            align-content: start;
+        }
+
+        .hero-side h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            letter-spacing: 0.01em;
+        }
+
+        .snapshot-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .snapshot {
+            padding: 14px;
+            border-radius: 18px;
+            background: var(--panel-strong);
+            border: 1px solid var(--border);
+        }
+
+        .snapshot .label {
+            color: var(--muted-2);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .snapshot .value {
+            margin-top: 8px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .snapshot .subvalue {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        .value.up {
+            color: #8cf0b4;
+        }
+
+        .value.down {
+            color: #ff8b9a;
+        }
+
+        .value.warn {
+            color: #ffd38c;
+        }
+
+        .section {
+            margin-top: 22px;
+        }
+
+        .section-head {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .section-head h3 {
+            margin: 0;
+            font-size: 1.22rem;
+            letter-spacing: -0.02em;
+        }
+
+        .section-head p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.55;
+        }
+
+        .health-strip {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .service-chip {
+            padding: 15px 16px;
+            border-radius: 18px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            display: grid;
+            gap: 6px;
+            min-height: 102px;
+        }
+
+        .service-chip .name {
+            color: #dce7ff;
+            font-size: 0.94rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            text-transform: capitalize;
+        }
+
+        .service-chip .status {
+            font-size: 1.16rem;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+        }
+
+        .service-chip .note {
+            color: var(--muted);
+            font-size: 0.83rem;
+            line-height: 1.45;
+        }
+
+        .status-up {
+            color: #8cf0b4;
+        }
+
+        .status-down {
+            color: #ff8b9a;
+        }
+
+        .status-warn {
+            color: #ffd38c;
+        }
+
+        .flow-wrap {
+            padding: 24px;
+        }
+
+        .flow {
+            display: grid;
+            gap: 0;
+            justify-items: stretch;
+        }
+
+        .flow-node,
+        .scenario-node,
+        .reset-node {
+            appearance: none;
+            border: 1px solid var(--border);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
+                rgba(12, 18, 32, 0.8);
+            color: var(--text);
+            border-radius: 24px;
+            padding: 20px 22px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+            transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+            width: 100%;
+        }
+
+        .flow-node:hover,
+        .flow-node:focus-visible,
+        .scenario-node:hover,
+        .scenario-node:focus-visible {
+            transform: translateY(-2px);
+            border-color: rgba(97, 231, 213, 0.35);
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.24);
+            outline: none;
+        }
+
+        .flow-node.active,
+        .scenario-node.active {
+            border-color: rgba(97, 231, 213, 0.6);
+            box-shadow: 0 0 0 1px rgba(97, 231, 213, 0.16), 0 18px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .flow-node[data-tone="blue"] {
+            background:
+                linear-gradient(180deg, rgba(86, 163, 255, 0.26), rgba(86, 163, 255, 0.12)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .flow-node[data-tone="teal"] {
+            background:
+                linear-gradient(180deg, rgba(97, 231, 213, 0.22), rgba(97, 231, 213, 0.1)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .flow-node[data-tone="green"] {
+            background:
+                linear-gradient(180deg, rgba(135, 217, 87, 0.2), rgba(135, 217, 87, 0.1)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .flow-node[data-tone="violet"] {
+            background:
+                linear-gradient(180deg, rgba(143, 134, 255, 0.24), rgba(143, 134, 255, 0.12)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .node-title {
+            margin: 0;
+            font-size: 1.22rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .node-copy {
+            margin: 10px auto 0;
+            max-width: 68ch;
+            color: #d0dcf8;
+            font-size: 0.96rem;
+            line-height: 1.55;
+        }
+
+        .node-command {
+            margin: 12px auto 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .connector {
+            width: 2px;
+            height: 28px;
+            margin: 0 auto;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0.14));
+            position: relative;
+        }
+
+        .connector::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            bottom: -7px;
+            width: 10px;
+            height: 10px;
+            border-right: 2px solid rgba(255, 255, 255, 0.45);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.45);
+            transform: translateX(-50%) rotate(45deg);
+        }
+
+        .branch-label {
+            text-align: center;
+            margin: 6px 0 14px;
+            color: #eef3ff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .branch-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .scenario-node {
+            text-align: left;
+            padding: 18px 18px 16px;
+            min-height: 168px;
+        }
+
+        .scenario-node.good {
+            background:
+                linear-gradient(180deg, rgba(135, 217, 87, 0.25), rgba(53, 91, 18, 0.88)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .scenario-node.bad {
+            background:
+                linear-gradient(180deg, rgba(255, 107, 125, 0.24), rgba(104, 27, 36, 0.92)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .scenario-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #f6f9ff;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .scenario-title {
+            margin: 14px 0 8px;
+            font-size: 1.28rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+        }
+
+        .scenario-copy {
+            margin: 0;
+            color: rgba(255, 255, 255, 0.82);
+            line-height: 1.55;
+            font-size: 0.95rem;
+        }
+
+        .scenario-foot {
+            margin-top: 12px;
+            color: rgba(255, 255, 255, 0.82);
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .reset-node {
+            margin-top: 16px;
+            background:
+                linear-gradient(180deg, rgba(143, 134, 255, 0.24), rgba(72, 61, 146, 0.9)),
+                rgba(12, 18, 32, 0.88);
+        }
+
+        .reset-title {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .reset-copy {
+            margin: 8px 0 0;
+            color: rgba(246, 247, 255, 0.82);
+            font-size: 0.94rem;
+            line-height: 1.55;
+        }
+
+        .details {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(340px, 0.8fr);
+            gap: 18px;
+        }
+
+        .detail-card {
+            padding: 20px;
+            border-radius: 24px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+        }
+
+        .detail-card h4 {
+            margin: 0 0 10px;
+            font-size: 1.06rem;
+            letter-spacing: -0.02em;
+        }
+
+        .detail-card p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.65;
+        }
+
+        .detail-rows {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .detail-row:first-child {
+            border-top: 0;
+            padding-top: 0;
+        }
+
+        .detail-row .k {
+            color: var(--muted-2);
+            font-size: 0.84rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-row .v {
+            color: var(--text);
+            text-align: right;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .detail-stack {
+            display: grid;
+            gap: 12px;
+        }
+
+        .live-surface {
+            padding: 18px;
+            border-radius: 24px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+        }
+
+        .live-surface h4 {
+            margin: 0 0 12px;
+            font-size: 1rem;
+        }
+
+        .json-box {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 0.86rem;
+            line-height: 1.6;
+            color: #dce7ff;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: rgba(4, 8, 17, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 18px;
+            padding: 14px;
+        }
+
+        .footer {
+            margin-top: 16px;
+            color: var(--muted-2);
+            font-size: 0.84rem;
+            text-align: center;
+        }
+
+        .service-chip.ok .status,
+        .service-chip.ok .value {
+            color: #8cf0b4;
+        }
+
+        .service-chip.fail .status,
+        .service-chip.fail .value {
+            color: #ff8b9a;
+        }
+
+        .service-chip.wait .status,
+        .service-chip.wait .value {
+            color: #ffd38c;
+        }
+
+        @media (max-width: 1080px) {
+            .hero,
+            .details {
+                grid-template-columns: 1fr;
+            }
+
+            .health-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 720px) {
+            .shell {
+                width: min(100% - 20px, 100%);
+                padding-top: 18px;
+            }
+
+            .hero-main,
+            .hero-side,
+            .flow-wrap,
+            .detail-card,
+            .live-surface {
+                padding: 18px;
+                border-radius: 20px;
+            }
+
+            .hero-title {
+                font-size: 2rem;
+            }
+
+            .hero-actions {
+                flex-direction: column;
+            }
+
+            .health-strip,
+            .branch-grid,
+            .snapshot-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="panel hero-main">
+                <span class="eyebrow">Verification checklist</span>
+                <h1 class="hero-title">Five checks, one clean rollout.</h1>
+                <p class="hero-copy">
+                    This dashboard is the live companion for the rollout demo. The diagram below mirrors the exact
+                    checklist: start the stack, verify the five health endpoints, confirm the flag starts disabled,
+                    prove the router stays on v1, then choose a rollout scenario and reset it back to zero.
+                </p>
+                <div class="hero-actions">
+                    <a class="pill" href="#flow"><strong>Jump to flow</strong> and click any step</a>
+                    <a class="pill" href="#details"><strong>Dive deeper</strong> into the command view</a>
+                    <a class="pill" href="#live"><strong>Live snapshot</strong> of the current state</a>
+                </div>
+            </div>
+
+            <aside class="panel hero-side">
+                <h2>Current snapshot</h2>
+                <div class="snapshot-grid">
+                    <div class="snapshot">
+                        <div class="label">Router traffic</div>
+                        <div class="value" id="routerTrafficValue">--</div>
+                        <div class="subvalue" id="routerTrafficNote">Waiting for data...</div>
+                    </div>
+                    <div class="snapshot">
+                        <div class="label">Rollout step</div>
+                        <div class="value" id="rolloutStepValue">0%</div>
+                        <div class="subvalue" id="rolloutStepNote">Current canary exposure</div>
+                    </div>
+                    <div class="snapshot">
+                        <div class="label">Flag state</div>
+                        <div class="value" id="flagStateValue">DISABLED</div>
+                        <div class="subvalue" id="flagStateNote">fraud-model-v2</div>
+                    </div>
+                    <div class="snapshot">
+                        <div class="label">Last action</div>
+                        <div class="value" id="lastActionValue">initialized</div>
+                        <div class="subvalue" id="lastActionNote">Rollout controller status</div>
+                    </div>
+                </div>
+            </aside>
+        </section>
+
+        <section class="section" aria-labelledby="health-title">
+            <div class="section-head">
+                <div>
+                    <h3 id="health-title">Step 2 health check across all five services</h3>
+                    <p>Use this strip to verify that every container is live before you move on to traffic or rollout changes.</p>
+                </div>
+            </div>
+            <div class="health-strip" id="healthStrip">
+                <div class="service-chip wait" id="chip-router">
+                    <div class="name">router :8080</div>
+                    <div class="status" id="routerHealthStatus">WAITING</div>
+                    <div class="note" id="routerHealthNote">GET /health</div>
+                </div>
+                <div class="service-chip wait" id="chip-flag">
+                    <div class="name">flag :8081</div>
+                    <div class="status" id="flagHealthStatus">WAITING</div>
+                    <div class="note" id="flagHealthNote">GET /health</div>
+                </div>
+                <div class="service-chip wait" id="chip-stable">
+                    <div class="name">stable :8082</div>
+                    <div class="status" id="stableHealthStatus">WAITING</div>
+                    <div class="note" id="stableHealthNote">GET /health</div>
+                </div>
+                <div class="service-chip wait" id="chip-canary">
+                    <div class="name">canary :8083</div>
+                    <div class="status" id="canaryHealthStatus">WAITING</div>
+                    <div class="note" id="canaryHealthNote">GET /health</div>
+                </div>
+                <div class="service-chip wait" id="chip-rollout">
+                    <div class="name">rollout :8084</div>
+                    <div class="status" id="rolloutHealthStatus">WAITING</div>
+                    <div class="note" id="rolloutHealthNote">GET /health</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section panel flow-wrap" id="flow" aria-labelledby="flow-title">
+            <div class="section-head">
+                <div>
+                    <h3 id="flow-title">Step-by-step verification flow</h3>
+                    <p>Click any step to jump down to the matching explanation and command block.</p>
+                </div>
+            </div>
+
+            <div class="flow">
+                <button class="flow-node" type="button" data-step="1" data-tone="blue">
+                    <p class="node-title">Step 1 - Start everything</p>
+                    <p class="node-copy">Run the full stack and wait for all five Docker containers to come up green.</p>
+                    <p class="node-command">Command: <span>make up</span></p>
+                </button>
+
+                <div class="connector" aria-hidden="true"></div>
+
+                <button class="flow-node" type="button" data-step="2" data-tone="teal">
+                    <p class="node-title">Step 2 - Check every health endpoint</p>
+                    <p class="node-copy">Hit /health on ports 8080 through 8084 and confirm every service reports status: UP.</p>
+                    <p class="node-command">Command: <span>curl each /health endpoint</span></p>
+                </button>
+
+                <div class="connector" aria-hidden="true"></div>
+
+                <button class="flow-node" type="button" data-step="3" data-tone="green">
+                    <p class="node-title">Step 3 - Confirm the flag starts off</p>
+                    <p class="node-copy">The fraud-model-v2 flag should begin disabled with rolloutPercent set to 0.</p>
+                    <p class="node-command">Command: <span>GET :8081/flags/fraud-model-v2</span></p>
+                </button>
+
+                <div class="connector" aria-hidden="true"></div>
+
+                <button class="flow-node" type="button" data-step="4" data-tone="teal">
+                    <p class="node-title">Step 4 - Prove the router stays on v1</p>
+                    <p class="node-copy">Call the router 10 times while rollout is still at 0 and every response should stay on version v1.</p>
+                    <p class="node-command">Command: <span>GET :8080/route x10</span></p>
+                </button>
+
+                <div class="connector" aria-hidden="true"></div>
+
+                <button class="flow-node" type="button" data-step="5" data-tone="violet">
+                    <p class="node-title">Step 5 - Choose your scenario</p>
+                    <p class="node-copy">Run the happy path to watch canary traffic climb, or the bad path to force a rollback and snap back to v1.</p>
+                    <p class="node-command">Command: <span>make demo-good | make demo-bad | make reset</span></p>
+                </button>
+
+                <div class="connector" aria-hidden="true"></div>
+
+                <div class="branch-label">Pick the path you want to demonstrate</div>
+                <div class="branch-grid">
+                    <button class="scenario-node good" type="button" data-step="5" data-scenario="good">
+                        <span class="scenario-tag">make demo-good</span>
+                        <div class="scenario-title">Promote the rollout</div>
+                        <p class="scenario-copy">
+                            Canary stays healthy, so the rollout controller advances the exposure in steps and
+                            the traffic shifts toward v2.
+                        </p>
+                        <p class="scenario-foot">Watch :8084/status and look for 1 -> 5 -> 25 -> 50 -> 100.</p>
+                    </button>
+
+                    <button class="scenario-node bad" type="button" data-step="5" data-scenario="bad">
+                        <span class="scenario-tag">make demo-bad</span>
+                        <div class="scenario-title">Force a rollback</div>
+                        <p class="scenario-copy">
+                            Canary returns a high error rate, the flag flips off, canaryPercent drops to 0, and
+                            traffic snaps back to stable v1.
+                        </p>
+                        <p class="scenario-foot">Watch :8084/status and confirm rollback behavior.</p>
+                    </button>
+                </div>
+
+                <button class="reset-node" type="button" data-step="5" data-scenario="reset">
+                    <p class="reset-title">Final confirm: make reset</p>
+                    <p class="reset-copy">Return the system to zero so it is ready for the next demo run: flag disabled, canaryPercent back to 0, and the checklist ready to repeat.</p>
+                </button>
+            </div>
+        </section>
+
+        <section class="section details" id="details" aria-labelledby="details-title">
+            <div class="detail-stack">
+                <div class="detail-card" id="detail-card">
+                    <h4 id="details-title">Dive deeper</h4>
+                    <p id="focusDescription">
+                        Select any step in the diagram and this panel will explain what to run, what the system should
+                        look like, and which endpoint to inspect next.
+                    </p>
+                    <div class="detail-rows">
+                        <div class="detail-row">
+                            <div class="k">Selected step</div>
+                            <div class="v" id="focusStep">Step 1</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Command</div>
+                            <div class="v" id="focusCommand">make up</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Expectation</div>
+                            <div class="v" id="focusExpectation">All five Docker containers should come up green.</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Endpoint to watch</div>
+                            <div class="v" id="focusEndpoint">http://localhost:8080/health</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="live-surface" id="live">
+                    <h4>Live snapshot</h4>
+                    <div class="json-box" id="liveJson">Waiting for the first poll...</div>
+                </div>
+            </div>
+
+            <div class="detail-stack" style="margin-top: 18px;">
+                <div class="detail-card" id="step-1">
+                    <h4>Step 1 - Start everything</h4>
+                    <p>Bring the stack up with Docker Compose and wait until the five services are ready.</p>
+                    <div class="detail-rows">
+                        <div class="detail-row">
+                            <div class="k">Run</div>
+                            <div class="v">make up</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Look for</div>
+                            <div class="v">All containers healthy in Docker</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Why it matters</div>
+                            <div class="v">Nothing else makes sense until the stack is live</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card" id="step-2">
+                    <h4>Step 2 - Check the health endpoints</h4>
+                    <p>Verify the system is actually alive before you trust any routing or rollout signal.</p>
+                    <div class="detail-rows">
+                        <div class="detail-row">
+                            <div class="k">Run</div>
+                            <div class="v">curl /health on 8080, 8081, 8082, 8083, and 8084</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Look for</div>
+                            <div class="v">status: UP everywhere</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Note</div>
+                            <div class="v">Rollout controller now exposes /health for the checklist</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card" id="step-3">
+                    <h4>Step 3 - Confirm the flag state</h4>
+                    <p>The rollout starts dark. The feature flag should not expose canary traffic until you intentionally change it.</p>
+                    <div class="detail-rows">
+                        <div class="detail-row">
+                            <div class="k">Run</div>
+                            <div class="v">GET /flags/fraud-model-v2</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Look for</div>
+                            <div class="v">enabled = false and rolloutPercent = 0</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Current</div>
+                            <div class="v" id="flagDetailValue">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card" id="step-4">
+                    <h4>Step 4 - Prove stable traffic routing</h4>
+                    <p>At 0 percent rollout, the router should send everything to the stable v1 service.</p>
+                    <div class="detail-rows">
+                        <div class="detail-row">
+                            <div class="k">Run</div>
+                            <div class="v">GET /route 10 times</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Look for</div>
+                            <div class="v">version: v1 on every response</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Live ratio</div>
+                            <div class="v" id="routeRatioValue">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-card" id="step-5">
+                    <h4>Step 5 - Choose a scenario and reset</h4>
+                    <p>Use the happy path to promote, the bad path to rollback, and reset when you are done.</p>
+                    <div class="detail-rows">
+                        <div class="detail-row">
+                            <div class="k">Happy path</div>
+                            <div class="v">make demo-good</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Rollback path</div>
+                            <div class="v">make demo-bad</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="k">Finish</div>
+                            <div class="v">make reset</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="footer">
+            Live data refreshes every 2 seconds from /api/data. The page is designed to stay useful even while the stack is still warming up.
+        </div>
+    </main>
+
+    <script>
+        const stepMeta = {
+            1: {
+                title: "Step 1 - Start everything",
+                command: "make up",
+                expectation: "All five Docker containers should come up green.",
+                endpoint: "docker-compose up --build -d",
+                description: "Bring the stack online before checking anything else. The checklist assumes the router, flag service, stable app, canary app, and rollout controller are all running."
+            },
+            2: {
+                title: "Step 2 - Check the health endpoints",
+                command: "curl /health on all five ports",
+                expectation: "Every service should report status: UP.",
+                endpoint: "http://localhost:8080/health through http://localhost:8084/health",
+                description: "This is the quickest proof that the entire stack is reachable. The rollout controller now exposes /health so the checklist matches the five-container view."
+            },
+            3: {
+                title: "Step 3 - Confirm the flag state",
+                command: "GET /flags/fraud-model-v2",
+                expectation: "enabled = false and rolloutPercent = 0.",
+                endpoint: "http://localhost:8081/flags/fraud-model-v2",
+                description: "The demo starts with the feature off. That keeps all traffic on stable until you deliberately promote a rollout."
+            },
+            4: {
+                title: "Step 4 - Prove stable traffic routing",
+                command: "GET /route 10 times",
+                expectation: "Every response should report version v1.",
+                endpoint: "http://localhost:8080/route",
+                description: "With rollout set to 0, the router should send 100 percent of traffic to the stable service."
+            },
+            5: {
+                title: "Step 5 - Choose a scenario and reset",
+                command: "make demo-good | make demo-bad | make reset",
+                expectation: "Promote on the happy path, rollback on the bad path, then reset to zero.",
+                endpoint: "http://localhost:8084/status",
+                description: "Use the scenario that best matches the story you want to tell. The status endpoint shows the rollout controller's latest action and current canary percent."
+            }
+        };
+
+        const el = (id) => document.getElementById(id);
+        const stepButtons = Array.from(document.querySelectorAll("[data-step]"));
+        const scenarioButtons = Array.from(document.querySelectorAll("[data-scenario]"));
+        let activeStep = 1;
+        let activeScenario = null;
+
+        function setChipState(prefix, status, note) {
+            const chip = el(`chip-${prefix}`);
+            const statusEl = el(`${prefix}HealthStatus`);
+            const noteEl = el(`${prefix}HealthNote`);
+            const value = (status || "WAITING").toString().toUpperCase();
+
+            chip.classList.remove("ok", "fail", "wait");
+            if (value === "UP") {
+                chip.classList.add("ok");
+            } else if (value === "DOWN") {
+                chip.classList.add("fail");
+            } else {
+                chip.classList.add("wait");
+            }
+
+            statusEl.textContent = value;
+            if (note) {
+                noteEl.textContent = note;
+            }
+        }
+
+        function safeNumber(value, fallback = 0) {
+            return typeof value === "number" && !Number.isNaN(value) ? value : fallback;
+        }
+
+        function updateFocus(stepNumber, scenarioName) {
+            activeStep = stepNumber;
+            activeScenario = scenarioName || null;
+            const meta = stepMeta[stepNumber] || stepMeta[1];
+            el("focusStep").textContent = meta.title;
+            el("focusCommand").textContent = meta.command;
+            el("focusExpectation").textContent = meta.expectation;
+            el("focusEndpoint").textContent = meta.endpoint;
+            el("focusDescription").textContent = meta.description;
+
+            stepButtons.forEach((button) => {
+                const isActive = Number(button.dataset.step) === stepNumber;
+                button.classList.toggle("active", isActive);
+            });
+
+            scenarioButtons.forEach((button) => {
+                const isActive = Number(button.dataset.step) === stepNumber && (!scenarioName || button.dataset.scenario === scenarioName);
+                button.classList.toggle("active", isActive);
+            });
+        }
+
+        function attachInteractions() {
+            stepButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const stepNumber = Number(button.dataset.step);
+                    updateFocus(stepNumber, button.dataset.scenario || null);
+                    const target = document.getElementById(`step-${stepNumber}`);
+                    if (target) {
+                        target.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                });
+            });
+
+            updateFocus(1, null);
+        }
+
+        function updateDashboard(data) {
+            const routerHealth = data.routerHealth || {};
+            const routerStats = data.routerStats || {};
+            const flagHealth = data.flagHealth || {};
+            const flagData = data.flagData || {};
+            const stableHealth = data.stableHealth || {};
+            const canaryHealth = data.canaryHealth || {};
+            const rolloutHealth = data.rolloutHealth || {};
+            const rolloutStatus = data.rolloutStatus || {};
+
+            const stableCount = safeNumber(routerStats.stableCount, 0);
+            const canaryCount = safeNumber(routerStats.canaryCount, 0);
+            const totalRequests = safeNumber(routerStats.totalRequests, 0);
+            const canaryPercent = safeNumber(routerStats.canaryPercent, 0);
+            const stablePercent = Math.max(0, 100 - canaryPercent);
+
+            el("routerTrafficValue").textContent = `${canaryPercent}% canary / ${stablePercent}% stable`;
+            el("routerTrafficNote").textContent = `${totalRequests} routed requests total`;
+            el("rolloutStepValue").textContent = `${safeNumber(rolloutStatus.currentCanaryPercent, canaryPercent)}%`;
+            el("rolloutStepNote").textContent = `Last action: ${rolloutStatus.lastAction || "initialized"}`;
+            el("flagStateValue").textContent = flagData.enabled ? "ENABLED" : "DISABLED";
+            el("flagStateValue").className = `value ${flagData.enabled ? "up" : "down"}`;
+            el("flagStateNote").textContent = `rolloutPercent = ${safeNumber(flagData.rolloutPercent, 0)}%`;
+            el("lastActionValue").textContent = rolloutStatus.lastAction || "initialized";
+            el("lastActionNote").textContent = rolloutStatus.lastActionTime || "Rollout controller status";
+
+            setChipState("router", routerHealth.status, routerHealth.status === "UP" ? "Router health endpoint is live" : "Router health check pending");
+            setChipState("flag", flagHealth.status, flagHealth.service ? `Service: ${flagHealth.service}` : "Flag service health endpoint");
+            setChipState("stable", stableHealth.status, `version ${stableHealth.version || "v1"}`);
+            setChipState("canary", canaryHealth.status, `version ${canaryHealth.version || "v2"}`);
+            setChipState("rollout", rolloutHealth.status, rolloutHealth.service ? `Service: ${rolloutHealth.service}` : "Rollout health endpoint");
+
+            const stableDetail = `${stableCount} stable / ${canaryCount} canary`;
+            const routeRatio = totalRequests > 0
+                ? `${stableCount}/${totalRequests} stable, ${canaryCount}/${totalRequests} canary`
+                : "No requests routed yet";
+
+            el("routeRatioValue").textContent = routeRatio;
+            el("flagDetailValue").textContent = `enabled=${String(!!flagData.enabled)}; rolloutPercent=${safeNumber(flagData.rolloutPercent, 0)}%`;
+
+            const liveJson = {
+                routerHealth,
+                routerStats: {
+                    totalRequests,
+                    stableCount,
+                    canaryCount,
+                    canaryPercent
+                },
+                flagHealth,
+                flagData,
+                stableHealth,
+                canaryHealth,
+                rolloutHealth,
+                rolloutStatus,
+                timestamp: data.timestamp || null,
+                summary: stableDetail
+            };
+
+            el("liveJson").textContent = JSON.stringify(liveJson, null, 2);
+
+            updateFocus(activeStep, activeScenario);
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch("/api/data", { cache: "no-store" });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const data = await response.json();
+                updateDashboard(data);
+            } catch (error) {
+                el("liveJson").textContent = `Waiting for dashboard data...\n${error.message}`;
+                setChipState("router", "WAITING", "Waiting for dashboard refresh");
+                setChipState("flag", "WAITING", "Waiting for dashboard refresh");
+                setChipState("stable", "WAITING", "Waiting for dashboard refresh");
+                setChipState("canary", "WAITING", "Waiting for dashboard refresh");
+                setChipState("rollout", "WAITING", "Waiting for dashboard refresh");
+            }
+        }
+
+        attachInteractions();
+        fetchData();
+        setInterval(fetchData, 2000);
+    </script>
+</body>
+</html>

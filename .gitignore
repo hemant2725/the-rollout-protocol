@@ -1,0 +1,35 @@
+# Maven build output
+**/target/
+**/build/
+
+# Local dependency cache
+.m2/
+
+# IDE settings
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Package artifacts
+*.jar
+*.war
+*.ear
+
+# Environment overrides
+.env
+.env.*
+
+# Test and coverage output
+surefire-reports/
+failsafe-reports/
+coverage/
